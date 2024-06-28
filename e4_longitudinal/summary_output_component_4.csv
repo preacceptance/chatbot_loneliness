@@ -1,0 +1,45 @@
+"","Means Treated","Means Control","Std. Mean Diff.","Var. Ratio","eCDF Mean","eCDF Max","Std. Pair Dist."
+"distance",0.47,0.46,0.01,1.02,0.01,0.03,0.02
+"Age",40.18,40.17,0,0.87,0.01,0.04,1.11
+"GenderMan",0.52,0.5,0.04,NA,0.02,0.02,0.94
+"GenderNon-binary",0.01,0.01,0,NA,0,0,0.02
+"GenderPrefer not to say",0,0.01,-0.04,NA,0,0,0.13
+"GenderWoman",0.46,0.48,-0.03,NA,0.02,0.02,0.94
+"ai_experience1",0.36,0.36,0,NA,0,0,0.28
+"ai_experience2",0.64,0.64,0,NA,0,0,0.28
+"Broad.Income.Category<$10,000 - $29,999",0.16,0.14,0.04,NA,0.02,0.02,0.7
+"Broad.Income.Category$100,000 - $174,999",0.24,0.23,0.01,NA,0,0,0.75
+"Broad.Income.Category$175,000 or more",0.07,0.08,-0.03,NA,0.01,0.01,0.51
+"Broad.Income.Category$30,000 - $59,999",0.24,0.26,-0.06,NA,0.02,0.02,0.9
+"Broad.Income.Category$60,000 - $99,999",0.28,0.26,0.04,NA,0.02,0.02,0.91
+"Broad.Income.CategoryUnknown",0.02,0.03,-0.02,NA,0,0,0.25
+"EducationAssociate degree (for example: AA, AS)",0.08,0.08,-0.01,NA,0,0,0.58
+"EducationBachelor's degree (for example: BA, AB, BS)",0.43,0.41,0.03,NA,0.02,0.02,1.02
+"EducationDoctorate degree (for example: PhD, EdD)",0.02,0.01,0.04,NA,0,0,0.25
+"EducationHigh school graduate - high school diploma or the equivalent (for example: GED)",0.11,0.11,-0.01,NA,0,0,0.62
+"EducationLess than a high school diploma",0,0.01,-0.07,NA,0,0,0.07
+"EducationMaster's degree (for example: MA, MS, MEng, MEd, MSW, MBA)",0.13,0.14,-0.03,NA,0.01,0.01,0.71
+"EducationNo formal education",0,0,0,NA,0,0,0
+"EducationPrefer not to say",0,0,-0.04,NA,0,0,0.04
+"EducationProfessional degree (for example: MD, DDS, DVM, LLB, JD)",0.02,0.02,-0.04,NA,0,0,0.25
+"EducationSome college, but no degree",0.22,0.21,0.02,NA,0.01,0.01,0.78
+"Relationship.Marital.StatusI’d Rather Not Say",0,0.01,-0.1,NA,0.01,0.01,0.1
+"Relationship.Marital.StatusIn a relationship",0.57,0.59,-0.04,NA,0.02,0.02,0.9
+"Relationship.Marital.StatusSingle",0.43,0.4,0.07,NA,0.03,0.03,0.9
+"RaceAmerican Indian or Alaska Native",0,0.01,-0.07,NA,0,0,0.22
+"RaceAn ethnicity not listed here",0.02,0.02,0.02,NA,0,0,0.22
+"RaceAsian Indian",0,0,0,NA,0,0,0.01
+"RaceBlack or African American",0.09,0.11,-0.05,NA,0.02,0.02,0.53
+"RaceChinese",0.05,0.06,-0.04,NA,0.01,0.01,0.47
+"RaceFilipino",0,0,0,NA,0,0,0
+"RaceJapanese",0,0,-0.04,NA,0,0,0.04
+"RaceKorean",0,0,0,NA,0,0,0
+"RaceOther",0.02,0.01,0.04,NA,0,0,0.25
+"RacePrefer not to say",0,0.01,-0.04,NA,0,0,0.11
+"RaceVietnamese",0.01,0.01,0,NA,0,0,0.02
+"RaceWhite",0.79,0.76,0.06,NA,0.03,0.03,0.77
+"Employment.Status",0,0,0,NA,0,0,0
+"Employment.StatusEmployed",0.74,0.75,-0.03,NA,0.01,0.01,0.88
+"Employment.StatusPrefer not to say",0.02,0.02,-0.02,NA,0,0,0.19
+"Employment.StatusStudent",0.05,0.05,0,NA,0,0,0.11
+"Employment.StatusUnemployed",0.2,0.18,0.04,NA,0.02,0.02,0.71

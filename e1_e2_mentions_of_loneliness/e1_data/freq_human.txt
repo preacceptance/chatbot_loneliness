@@ -1,0 +1,8 @@
+Frequency of conversations that contains non_loneliness words: 95.06%
+Average duration of conversations that includes any of the non_loneliness words: 17.84 mins
+Average length (word count) of conversations that includes any of the non_loneliness words: 181.73
+Average amount of turns of conversations that includes any of the non_loneliness words: 48.16
+Frequency of conversations that contains loneliness words: 4.94%
+Average duration of conversations that includes any of the loneliness words: 34.24 mins
+Average length (word count) of conversations that includes any of the loneliness words: 407.65
+Average amount of turns of conversations that includes any of the loneliness words: 99.70

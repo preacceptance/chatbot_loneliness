@@ -1,0 +1,76 @@
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+.RDataTmp
+
+# User-specific files
+.Ruserdata
+
+# Example code in package build process
+*-Ex.R
+
+# Output files from R CMD build
+/*.tar.gz
+
+# Output files from R CMD check
+/*.Rcheck/
+
+# RStudio files
+.Rproj.user/
+
+# produced vignettes
+vignettes/*.html
+vignettes/*.pdf
+
+# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
+.httr-oauth
+
+# knitr and R markdown default cache directories
+*_cache/
+/cache/
+
+# Temporary files created by R markdown
+*.utf8.md
+*.knit.md
+
+# R Environment Variables
+.Renviron
+
+# pkgdown site
+docs/
+
+# translation temp files
+po/*~
+
+# RStudio Connect folder
+rsconnect/
+
+e1_e2_mentions_of_loneliness/conversation_data/*
+e5_generalist_ai/archive/
+e5_generalist_ai/db/
+*.DS_Store
+*.zip
+*.pdf
+*.png
+e4_longitudinal/data/archive/
+e4_longitudinal/data/db
+e1_e2_mentions_of_loneliness/.DS_Store
+*.pyc
+e1_e2_mentions_of_loneliness/mistral/archive/v1/
+e1_e2_mentions_of_loneliness/mistral/archive/
+e1_e2_mentions_of_loneliness/mistral/data/
+e1_e2_mentions_of_loneliness/mistral/finetuning/
+e1_e2_mentions_of_loneliness/reddit_data/
+e1_e2_mentions_of_loneliness/review_data/
+e1_e2_mentions_of_loneliness/simsimi/
+e4_longitudinal/find_timezones.py
+results_random_sample.numbers
+mappings/
+e4_longitudinal/data/feeling_heard_reviews.numbers
+e4_longitudinal/data/manual_codings_opinions_d7.numbers
+anonymize_files.R
+mistral/
+*.qsf
