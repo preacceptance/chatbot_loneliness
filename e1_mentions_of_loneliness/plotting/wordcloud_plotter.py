@@ -45,5 +45,5 @@ def plot_word_cloud(file_path="", app="replika"):
     plt.savefig("wordcloud_reviews_{}.pdf".format(app))
 
 if __name__ == "__main__":
-    for app in ["replika", "chai", "igirl", "simsimi", "cleverbot", "chatgpt"]:
-        plot_word_cloud(file_path=f"./e1b_data/review_data/{app}/results/results_with_inference.csv", app=app)
+    for app in ["wysa", "replika", "chai", "igirl", "simsimi", "cleverbot", "chatgpt"]:
+        plot_word_cloud(file_path=f"./review_data/review_data/{app}/results/results_with_inference.csv", app=app)

@@ -60,72 +60,19 @@ find_words <- function(needles, haystack) {
   return(toJSON(needles[results]))
 }
 
-############################### For conversation data (Study 1A) ###############################
 
-# All conversations that are manually verified as lonely by both raters
-all_data <- read.csv('./e1_data/cleverbot_results_anonymized.csv')
-
-spl <- function(s) {return(str_split(s, '_')[[1]][1])}
-print(paste0("Number of users: ", length(unique(lapply(all_data[,'id'], spl)))))
-print(paste0("Number of conversations: ", dim(all_data)[1]))
-print(paste0("Conversations per user: ", dim(all_data)[1] / length(unique(lapply(all_data[,'id'], spl)))))
-print(paste0("% of conversations containing loneliness detected by loneliness dictionary (N=90): ", round(100 * sum(all_data$contains_loneliness_dict == "True") / dim(all_data)[1], 2)))
-
-# All message pairs that are classified as lonely by the LLM. This file also includes manual classification data
-message_pairs <- read.csv('./e1_data/message_pairs_manual.csv', sep=";")
-
-# both raters agreed (α = 0.84) 
-cronbach.alpha(message_pairs[, c('rater_1', 'rater_2')])
-agreements <- message_pairs[message_pairs$rater_1 == message_pairs$rater_2, ]
-
-print(paste0("% of lonely message pairs (N=221): ", round(100 * sum(agreements$rater_1 == 1)) / dim(message_pairs)[1], 2))
-print(paste0("% of conversations truly containing loneliness (N=156): ", round(100 * sum(all_data$contains_loneliness_llm == 1) / dim(all_data)[1], 2)))
-
-
-# *-*-*-*-*-*-* # Engagement *-*-*-*-*-*-* #
-
-# Tests for loneliness v. non-loneliness comparisons
-# Use wilcox test if distribution is not normal, else use regular t-tests
-for (dv in c('duration_in_mins', 'turns', 'human_word_amt')) {
-    print(paste("*-*-*-*-*-*", dv, "*-*-*-*-*-*"))
-
-    lonely <- all_data[all_data$contains_loneliness_llm == 1, dv]
-    non_lonely <- all_data[all_data$contains_loneliness_llm == 0, dv]
-    
-    print("---- Means ----")
-    #print(paste("Mean of all: ", mean(all_data[, dv])))
-    print(paste("Mean of loneliness: ", mean(lonely)))
-    print(paste("Mean of non-loneliness: ", mean(non_lonely)))
-    
-    print("---- Medians ----")
-    #print(paste("Median of all: ", median(all_data[, dv])))
-    print(paste("Median of loneliness: ", median(lonely)))
-    print(paste("Median of non-loneliness: ", median(non_lonely)))
-
-    print("----------- Loneliness v. Non-loneliness -----------")
-    wtest <- wilcox.test(x = lonely, y = non_lonely, na.rm = TRUE,
-                          paired = FALSE, exact = FALSE, conf.int = TRUE)
-    print(wtest)
-
-    # Calculate Z-value:
-    print(paste0("Z value: ", qnorm(wtest$p.value / 2)))
-    print(cohen.d(lonely, non_lonely))
-}
-
-############################### For review data (Study 1B) ###############################
+######## REVIEWS ########
 
 # Create an empty dataframe that contains 'sentiment', 'contains_loneliness_llm', 'rating', 'date', 'app' columns
 d_review_all <- data.frame(matrix(ncol = 5, nrow = 0))
 colnames(d_review_all) <- c('sentiment', 'contains_loneliness_llm', 'rating', 'date', 'app')
 
-for (app in c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) {   #'cleverbot',
+for (app in c('replika', 'wysa', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) {
   # Read './review_data/{app}/{app}_reviews.csv'
 
   print(paste0("*-*-*-*-*-* ", app, " *-*-*-*-*-*"))
-  app_review <- read.csv(paste0('./e2_data/review_data/', app, '/results/results_with_inference.csv')) # Change review_data to conversation_data if you are using conversation data
+  app_review <- read.csv(paste0('./review_data/review_data/', app, '/results/results_with_inference.csv')) # Change review_data to conversation_data if you are using conversation data
 
-  # Read sentiments in 'sentiment' column as a JSON object. Get the first item in the object
-  # and get the 'sentiment' value
   sent <- lapply(app_review$sentiment, fromJSON)
   sent <- lapply(sent, function(x) {return(x[[1]])})
   
@@ -138,24 +85,29 @@ for (app in c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) { 
   # Save the app into d_review_all
   d_review_all <- rbind(d_review_all, app_review[, c('sentiment', 'contains_loneliness_llm', 'rating', 'date', 'app')])
 
-  # Print % of reviews containing 'feeling heard'
-  app_review$feeling_heard <- sapply(app_review$review, find_words, needles = c('feeling heard', 'feel heard', 'felt heard'))
-
   print(paste0("Number of reviews: ", dim(app_review)[1]))
 
   print(paste0("Loneliness percentage: ", (100 * dim(loneliness)[1] / dim(app_review)[1])))
   print(paste0("Mean overall rating: ", mean(app_review[, 'rating'])))
+  print(paste0("SD overall rating: ", sd(app_review[, 'rating'])))
 
   print(paste0("Mean rating of non-lonely users: ", mean(na.omit(non_loneliness[,'rating']))))
+  print(paste0("SD rating of non-lonely users: ", sd(na.omit(non_loneliness[,'rating']))))
+
   print(paste0("Mean rating of lonely users: ", mean(na.omit(loneliness[,'rating']))))
+  print(paste0("SD rating of lonely users: ", sd(na.omit(loneliness[,'rating']))))
 
   # Percentage of positive reviews in loneliness and non-loneliness
   print(paste0("Percentage of positive reviews in loneliness: ", (100 * dim(loneliness[loneliness$sentiment == "positive", ])[1] / dim(loneliness)[1])))
   print(paste0("Percentage of positive reviews in non-loneliness: ", (100 * dim(non_loneliness[non_loneliness$sentiment == "positive", ])[1] / dim(non_loneliness)[1])))
 
+  # Mean percentage of overall positive reviews
+  print(paste0("Mean percentage of overall positive reviews: ", (100 * dim(app_review[app_review$sentiment == "positive", ])[1] / dim(app_review)[1])))
+
   # Average rating of lonely users
   print(paste0("MDN rating of non-lonely users: ", median(na.omit(non_loneliness[,'rating']))))
   print(paste0("MDN rating of lonely users: ", median(na.omit(loneliness[,'rating']))))
+
 
   # Mean days since the reviews are posted:
   print(paste0("Mean days since the reviews are posted: ", mean(days_since(app_review[, 'date']))))
@@ -192,6 +144,25 @@ for (app in c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) { 
   print("------------------ ************* ------------------")
 }
 
+# Compare Replika vs. all other apps separately (except Wysa), and Wysa vs. all other apps separately (except Replika)
+for (app in c('replika', 'wysa')) {
+  app_review <- d_review_all[d_review_all$app == app, ]
+  
+  for (other_app in c('chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) {
+    print(paste0("-----------", app, " vs. ", other_app, " -----------"))
+
+    other_app_review <- d_review_all[d_review_all$app == other_app, ]
+    
+    pt <- prop.test(x = c(dim(app_review[app_review$contains_loneliness_llm == 1,])[1], c(dim(other_app_review[other_app_review$contains_loneliness_llm == 1,])[1])),
+            n = c(dim(app_review)[1], dim(other_app_review)[1]),
+            alternative = "two.sided", correct = FALSE)
+
+    print(pt)
+  }
+}
+
+
+
 ############################## Plotting ##############################
 
 d_review_all$rating <- as.numeric(d_review_all$rating)
@@ -199,7 +170,7 @@ d_review_all$contains_loneliness_llm <- as.numeric(d_review_all$contains_lonelin
 
 # Also plot a similar plot, with app in the x-axis, and loneliness percentage in the y-axis.
 # Apps should be ordered based on their average rating
-d_review_all$app <- factor(d_review_all$app, levels = c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt'))
+d_review_all$app <- factor(d_review_all$app, levels = c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt', 'wysa'))
 
 d_app <- d_review_all %>%
   group_by(app) %>%
@@ -217,74 +188,29 @@ d_plot <- d_review_all %>%
             ci_rating = 1.96 * sd_rating / sqrt(n()))
 
 # Order apps in d_plot based on their mean rating
-apporder <- c('replika' , 'chatgpt', 'igirl', 'simsimi', 'chai', 'cleverbot')
+apporder <- c('wysa', 'replika' , 'chatgpt', 'igirl', 'simsimi', 'chai', 'cleverbot')
 d_plot$app <- factor(d_plot$app, levels = apporder)
+
+# Replace the app names with more readable names
+d_plot$app <- factor(d_plot$app, labels = c('Wysa', 'Replika', 'ChatGPT', 'iGirl', 'SimSimi', 'Chai', 'Cleverbot'))
 
 barplot <- ggplot(d_plot, aes(x = app, y = mean_rating, fill = factor(contains_loneliness_llm))) +
   geom_bar(position="dodge", stat="identity", width = 0.9, alpha = 1, size = 0.75) +
   geom_errorbar(position=position_dodge(width=0.9), aes(ymin = mean_rating - ci_rating, ymax = mean_rating + ci_rating), width = 0.2) +
   scale_fill_manual(values = c("#cccccc", "#666666"), name = "Loneliness", guide = guide_legend(reverse = FALSE)) +
   theme_bw() +
-  theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(text = element_text(size = 20), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
   theme_classic() +
-  theme(axis.text.x = element_text(size = 16)) +
-  theme(axis.text.y = element_text(size = 16)) +
-  theme(axis.title.x = element_text(size = 18)) +
-  theme(axis.title.y = element_text(size = 18)) +
-  theme(plot.title = element_text(size = 18, hjust = 0.5)) +
-  theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 18)) +
+  theme(axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 20)) +
+  theme(axis.title.y = element_text(size = 20)) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5)) +
+  theme(legend.text = element_text(size = 18), legend.title = element_text(size = 18)) +
   xlab("Apps") +
   ylab("Mean Rating")
 
 print(barplot)
 
-#### Feeling heard analysis
-
-FEELING_HEARD_DICTIONARY <- read.csv('e2_data/feeling_heard_dict.csv')
-FEELING_HEARD_DICTIONARY <- c(FEELING_HEARD_DICTIONARY$terms)
-
-ratings <- read.csv('e2_data/feeling_heard_reviews.csv', sep=';')
-cronbach.alpha(ratings[, c('z', 'k')])
-
-# Get common reviews and get the percentage of reviews containing 'feeling heard'
-common_ratings <- ratings[ratings$z == ratings$k, ]
-table(common_ratings$z)
-
-feeling_heard_reviews <- data.frame(matrix(ncol = 3, nrow = 0))
-colnames(feeling_heard_reviews) <- c('app', 'feeling_heard', 'review')
-for (app in c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt')) {
-  # Read './review_data/{app}/{app}_reviews.csv'
-
-  print(paste0("*-*-*-*-*-* ", app, " (Running, please wait...) *-*-*-*-*-*"))
-  app_review <- read.csv(paste0('./e2_data/review_data/', app, '/results/results_with_inference.csv')) # Change review_data to conversation_data if you are using conversation data
-
-  # Read sentiments in 'sentiment' column as a JSON object. Get the first item in the object
-  # and get the 'sentiment' value
-  sent <- lapply(app_review$sentiment, fromJSON)
-  sent <- lapply(sent, function(x) {return(x[[1]])})
-  
-  sent <- unlist(sent)
-  app_review$sentiment <- sent
-
-  # Print % of reviews containing 'feeling heard'
-  app_review$feeling_heard <- sapply(app_review$review, find_words, needles = FEELING_HEARD_DICTIONARY)
-  app_review$feeling_heard_bool <- ifelse(app_review$feeling_heard == "[]", 0, 1)
-  app_heard <- app_review[app_review$feeling_heard_bool == 1, c('app', 'feeling_heard', 'review')]
-
-  # Add feeling_heard_reviews to the dataframe
-  feeling_heard_reviews <- rbind(feeling_heard_reviews, app_review[app_review$feeling_heard_bool == 1, c('app', 'feeling_heard', 'review')])
-
-  table(app_review$feeling_heard_bool)
-
-  print(paste0("% of reviews containing 'feeling heard': ", (100 * sum(app_review$feeling_heard_bool) / dim(app_review)[1])))
-
-  # Print percentage of reviews containing loneliness that also contain 'feeling heard'
-  print(paste0("% of reviews containing loneliness that also contain 'feeling heard': ", (100 * sum(app_review$feeling_heard_bool & (app_review$contains_loneliness_llm == 1)) / sum(app_review$contains_loneliness_llm))))
-}
-
-# Randomly select 114 reviews (10% of the total reviews) and save them in a csv file
-#set.seed(123)
-#feeling_heard_reviews <- feeling_heard_reviews[sample(nrow(feeling_heard_reviews), 114), ]
-#feeling_heard_reviews$k <- 1
-#feeling_heard_reviews$z <- 1
-#write.csv(feeling_heard_reviews, './review_data/feeling_heard_reviews.csv', row.names = FALSE)
+# ggsave as pdf
+ggsave("review_data/loneliness_rating.pdf", plot = barplot, width = 16, height = 5)

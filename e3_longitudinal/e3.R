@@ -14,7 +14,7 @@ pacman::p_load('ggplot2',
                'interactions',
                'exact2x2',
                'reshape2',
-               'ltm')
+               'ltm', 'boot', 'simr')
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #set working directory to current directory
 
@@ -407,6 +407,11 @@ d_long_diff_exp$day <- as.numeric(as.factor(d_long_diff_exp$day))
 model_diff <- lmer(diff ~ condition * day + (1|worker_id), data = d_long_diff_exp)
 summary(model_diff)
 
+# Remove day 1 and re-run the model
+d_long_diff_exp_no1 <- d_long_diff_exp[d_long_diff_exp$day != 1,]
+model_diff_no1 <- lmer(diff ~ condition * day + (1|worker_id), data = d_long_diff_exp_no1)
+summary(model_diff_no1)
+
 # Additionally, for each day, there was no significant difference in loneliness between the prediction and experience conditions 
 
 # Run t-tests comparing the difference in loneliness before vs. after interaction between prediction and interaction conditions
@@ -454,6 +459,132 @@ ttest_control_exp_before <- t.test(x, y, paired = FALSE); print(ttest_control_ex
 cd <- cohen.d(x, y, paired = FALSE); print(cd)
 
 
+################################### ANALYZE LONELY USERS ################################
+
+d_long_exp_control <- d_long %>%
+    filter(condition == "Experience" | condition == "Control")
+
+# Filter users in the experience condition in d_long, who have higher before-interaction loneliness than the mean of the before-interaction loneliness in the experience condition
+d_long_before <- d_long_exp_control %>%
+    filter(timepoint == "before" & day == 1)
+
+threshold <- mean(d_long_before$loneliness)
+
+# Only select users who have mean_before higher than the threshold
+high_before_loneliness_users <- d_long_before[d_long_before$loneliness > threshold, 'worker_id']
+low_before_loneliness_users <- d_long_before[d_long_before$loneliness <= threshold, 'worker_id']
+
+# In d_long, only keep users who are in the high_loneliness_users list for the experience condition, i.e., remove low_loneliness_users
+d_long_high_loneliness <- d_long_exp_control[!(d_long_exp_control$worker_id %in% low_before_loneliness_users$worker_id),]
+d_long_low_loneliness <- d_long_exp_control[!(d_long_exp_control$worker_id %in% high_before_loneliness_users$worker_id),]
+
+table(d_long_high_loneliness$condition, d_long_high_loneliness$day, d_long_high_loneliness$timepoint)
+table(d_long_low_loneliness$condition, d_long_low_loneliness$day, d_long_low_loneliness$timepoint)
+
+# Now compare loneliness scores between control and experience conditions for high loneliness users
+for (i in 1:7) {
+    d_long_control_exp_day <- d_long_high_loneliness %>%
+        #filter(day == i & (condition == "Experience"))
+        filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
+    x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
+# x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "before" & d_long_control_exp_day$condition == "Experience"]
+    y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
+    ttest_control_exp <- t.test(x, y, paired = FALSE)
+    cd <- cohen.d(x, y, paired = FALSE)
+    # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
+    print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MAfter = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
+
+}
+
+
+################################ BOOTSTRAPPING WITH REPLACEMENT ################################
+
+set.seed(123)  # For reproducibility
+
+for (i in 1:7) {
+    print(paste0("------- Day ", i, " -------"))
+    d_long_control_exp_day <- d_long %>%
+        filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
+    x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
+    y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
+    
+    # Combine x and y into a data frame
+    data_combined <- data.frame(
+        loneliness = c(x, y),
+        group = rep(c("Control", "Experience"), times = c(length(x), length(y)))
+    )
+    
+    # Double the sample size by bootstrapping
+    n_bootstrap <- 2000  # Number of bootstrap samples
+    t_values <- numeric(n_bootstrap)
+    p_values <- numeric(n_bootstrap)
+    cohen_d_values <- numeric(n_bootstrap)
+    control_values <- numeric(n_bootstrap)
+    experience_values <- numeric(n_bootstrap)
+    dof_values <- numeric(n_bootstrap)
+    
+    for (b in 1:n_bootstrap) {
+        # Resample with replacement
+        x_bootstrap <- sample(x, size = 4 * length(x), replace = TRUE)
+        y_bootstrap <- sample(y, size = 4 * length(y), replace = TRUE)
+        
+        # Combine into a data frame
+        data_bootstrap <- data.frame(
+            loneliness = c(x_bootstrap, y_bootstrap),
+            group = rep(c("Control", "Experience"), times = c(length(x_bootstrap), length(y_bootstrap)))
+        )
+        
+        # Perform t-test
+        control <- data_bootstrap[data_bootstrap$group == "Control", "loneliness"]
+        experience <- data_bootstrap[data_bootstrap$group == "Experience", "loneliness"]
+
+        ttest <- t.test(control, experience, data = data_bootstrap)
+        t_values[b] <- ttest$statistic
+        p_values[b] <- ttest$p.value
+        control_values[b] <- mean(control)
+        experience_values[b] <- mean(experience)
+        dof_values[b] <- ttest$parameter
+        
+        # Calculate Cohen's d
+        cd <- cohen.d(x_bootstrap, y_bootstrap, paired = FALSE)
+        cohen_d_values[b] <- cd$estimate
+    }
+    
+    # Calculate the mean t-statistic, mean p-value, mean effect size, and mean degrees of freedom
+    mean_t <- mean(t_values)
+    mean_p <- mean(p_values)
+    mean_d <- mean(cohen_d_values)
+    mean_control <- round(mean(control_values), 2)
+    sd_control <- round(sd(control_values), 2)
+    mean_experience <- round(mean(experience_values), 2)
+    sd_experience <- round(sd(experience_values), 2)
+    mean_dof <- round(mean(dof_values), 2)
+    
+    # Print the bootstrapped results
+    print(paste0(i, " (Bootstrapped); MControl = ", mean_control, " (", sd_control, ")", ", MExp = ", mean_experience, " (", sd_experience, "), ", " Mean t = ", round(mean_t, 2), ", Mean p = ", round(mean_p, 3), ", Mean d = ", round(mean_d, 2), ", Mean dof = ", round(mean_dof, 2)))
+}
+
+################################### BOOTSTRAPPING WITHOUT REPLACEMENT ################################
+
+for (i in 1:7) {
+    print(paste0("------- Day ", i, " -------"))
+    d_long_control_exp_day <- d_long %>%
+        filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
+    x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
+    y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
+    
+    # Double the sample size by sampling with replacement
+    x_bootstrap <- c(x, x) #sample(x, size = 2 * length(x), replace = FALSE)
+    y_bootstrap <- c(y, y) #sample(y, size = 2 * length(y), replace = FALSE)
+
+    # Perform t-test on bootstrapped samples
+    ttest_control_exp <- t.test(x_bootstrap, y_bootstrap, paired = FALSE)
+    cd <- cohen.d(x_bootstrap, y_bootstrap, paired = FALSE)
+    
+    # Print the results
+    print(paste0(i, " (Bootstrapped); MControl = ", round(mean(x_bootstrap), 2), " (", round(sd(x_bootstrap), 2), ") vs. MAfter = ", round(mean(y_bootstrap), 2), " (", round(sd(y_bootstrap), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
+}
+
 ######################## EXPLORATORY ANALYSES ##########################
 
 d_long_diff_exp <- d_long_diff %>%
@@ -485,6 +616,104 @@ d_long_exp_after <- d_long_engagement %>%
 
 # Run mixed effects regression to see if n_messages and avg_n_words predict loneliness
 summary(lmer(loneliness ~ n_messages + avg_n_words + (1|worker_id), data = d_long_exp_after))
+
+######################## EFFECT SIZES ########################
+
+# Now, calculate the effect sizes for different loneliness levels
+# For this, divide the data into two groups: lonely and not lonely. 
+# To do this, we have several constant loneliness thresholds ranging from 20 to 80.
+# Then, we will calculate the effect size for each group
+loneliness_thresholds <- (0:100)
+
+
+d_long_exp <- d_long %>%
+  filter(condition == "Experience")
+
+# Initialize effect_sizes as an empty list
+effect_sizes <- list()
+loneliness_diffs <- list()
+
+before <- d_long_exp[d_long_exp$timepoint == "before", 'loneliness']
+after <- d_long_exp[d_long_exp$timepoint == "after", 'loneliness']
+
+for(threshold in loneliness_thresholds) {
+    lonely_before <- before[before > threshold]
+    lonely_after <- after[before > threshold]  # Use 'before > threshold' to index 'after' as well
+
+    if (length(lonely_before) < 10) {
+        next
+    }
+
+    # Perform the t-test
+    vart <- var.test(lonely_before, lonely_after)
+    tt <- t.test(lonely_before, lonely_after, paired = TRUE, var.equal = vart$p.value > 0.05)
+
+    # Calculate and store the effect size
+    effect_sizes[[as.character(threshold)]] <- cohen.d(lonely_before, lonely_after, paired=TRUE)$estimate
+    loneliness_diffs[[as.character(threshold)]] <- mean(lonely_before) - mean(lonely_after)
+}
+
+
+# Plot this, with threshold in x-axis and effect size in y-axis
+effect_sizes_df <- data.frame(threshold = as.numeric(names(effect_sizes)), effect_size = unlist(effect_sizes))
+loneliness_diffs_df <- data.frame(threshold = as.numeric(names(loneliness_diffs)), loneliness_diff = unlist(loneliness_diffs))
+
+plot <- ggplot(data = effect_sizes_df, aes(x = threshold, y = effect_size)) +
+    geom_point() +
+    geom_line() +
+    theme_minimal() +
+    theme_classic() +
+    labs(x = "Loneliness Threshold",
+         y = "Effect Size (Cohen's d)") +
+    ylim(0.2, 1.2) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text.x = element_text(size = 16)) +
+    theme(axis.text.y = element_text(size = 16)) +
+    theme(plot.title = element_text(size = 0, hjust = 0.5)) +
+    theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18)) +
+    theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = "top", legend.direction = "horizontal")
+
+ggsave("./plots/effect_sizes.pdf", plot, width = 8, height = 6, dpi = 300)
+
+model <- lm(effect_size ~ threshold, data = effect_sizes_df)
+summary(model)
+
+################ LESS ENGAGED PARTICIPANTS ################
+
+# Find mean number of messages
+mean_msgs <- mean(d_long_engagement$n_messages, na.rm = TRUE)
+print(paste0("Mean number of messages: ", mean_msgs))
+
+table(d_long_engagement$condition, d_long_engagement$timepoint, d_long_engagement$day)
+
+# Replace NA n_messages with 0
+d_long_engagement$n_messages[is.na(d_long_engagement$n_messages)] <- 0
+
+# Exclude participants who sent less than mean number of messages across all days
+# For this, first calculate mean number of messages sent by each participant
+d_long_engagement$mean_n_messages <- ave(d_long_engagement$n_messages, d_long_engagement$worker_id, FUN = mean)
+
+# Get participants with mean number of messages less than the overall mean
+participants_high_n_messages <- na.omit(unique(d_long_engagement[d_long_engagement$condition == "Experience" & d_long_engagement$mean_n_messages > mean_msgs, 'worker_id'])) # 133
+participants_low_n_messages <- na.omit(unique(d_long_engagement[d_long_engagement$condition == "Experience" & d_long_engagement$mean_n_messages <= mean_msgs, 'worker_id']))
+
+d_long_engagement_low_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_high_n_messages),]
+d_long_engagement_high_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_low_n_messages),]
+
+print("day,mbefore,sdbefore,mafter,sdafter,t,p,d")
+for (i in 1:7) {
+    print(paste0("------- Day ", i, " -------"))
+    d_long_exp_day <- d_long_engagement_low_n_messages %>%
+        filter(day == i & condition == "Experience")
+    x <- d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]
+    y <- d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]
+    ttest <- t.test(x, y, paired = TRUE)
+    cd <- cohen.d(x, y, paired = TRUE)
+    
+    # Print the results in this format: MBefore = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
+    print(paste0(i, "; MBefore = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), ") vs. MAfter = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), "), t(", round(ttest$parameter, 2), ") = ", round(ttest$statistic, 2), ", p < .001", ", d = ", round(cd$estimate, 2)))
+}
 
 ###################### PROPENSITY SCORE MATCHING ######################
 
