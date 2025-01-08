@@ -336,9 +336,7 @@ cd <- cohen.d(x, y, paired = TRUE); print(cd)
 print(paste0("Mean before: ", mean(x)))
 print(paste0("Mean after: ", mean(y)))
 
-### To further delineate daily changes in loneliness, we conducted paired t-tests comparing 
-### levels of loneliness before and after interaction with the chatbot for each individual day
-# Run paired t-tests comparing loneliness before vs. after the interaction on each day
+# Table S3: PAIRED T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION
 print("day,mbefore,sdbefore,mafter,sdafter,t,p,d")
 for (i in 1:7) {
     print(paste0("------- Day ", i, " -------"))
@@ -347,12 +345,8 @@ for (i in 1:7) {
     x <- d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]
     y <- d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]
     ttest <- t.test(x, y, paired = TRUE)
-    #print(ttest)
-
     cd <- cohen.d(x, y, paired = TRUE)
-    #print(cd)
-
-    # Print the results in this format: MBefore = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
+    
     print(paste0(i, "; MBefore = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), ") vs. MAfter = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), "), t(", round(ttest$parameter, 2), ") = ", round(ttest$statistic, 2), ", p < .001", ", d = ", round(cd$estimate, 2)))
 }
 
@@ -379,19 +373,14 @@ d_long_control_expafter$day <- as.numeric(as.factor(d_long_control_expafter$day)
 model_control <- lmer(loneliness ~ condition * day + (1|worker_id), data = d_long_control_expafter)
 summary(model_control)
 
-# Specifically, loneliness was significantly lower after the chatbot interaction compared to the control condition on four out of seven days 
-# Run t-tests comparing loneliness in the control condition vs. loneliness after interaction in the experience condition
+# Table S4: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION
 for (i in 1:7) {
-    #print(paste0("------- Day ", i, " -------"))
     d_long_control_exp_day <- d_long %>%
         filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
     x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
     y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
     ttest_control_exp <- t.test(x, y, paired = FALSE)
-    #print(ttest_control_exp)
-
     cd <- cohen.d(x, y, paired = FALSE)
-    #print(cd)
 
     # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
     print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MAfter = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
@@ -481,7 +470,8 @@ d_long_low_loneliness <- d_long_exp_control[!(d_long_exp_control$worker_id %in% 
 table(d_long_high_loneliness$condition, d_long_high_loneliness$day, d_long_high_loneliness$timepoint)
 table(d_long_low_loneliness$condition, d_long_low_loneliness$day, d_long_low_loneliness$timepoint)
 
-# Now compare loneliness scores between control and experience conditions for high loneliness users
+
+# TABLE S6: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION WITHIN THE SUBSET OF LONELY USERS
 for (i in 1:7) {
     d_long_control_exp_day <- d_long_high_loneliness %>%
         #filter(day == i & (condition == "Experience"))
@@ -501,6 +491,7 @@ for (i in 1:7) {
 
 set.seed(123)  # For reproducibility
 
+# TABLE S5: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION, AFTER BOOTSTRAPPING
 for (i in 1:7) {
     print(paste0("------- Day ", i, " -------"))
     d_long_control_exp_day <- d_long %>%
@@ -701,6 +692,7 @@ participants_low_n_messages <- na.omit(unique(d_long_engagement[d_long_engagemen
 d_long_engagement_low_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_high_n_messages),]
 d_long_engagement_high_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_low_n_messages),]
 
+# TABLE S7: T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION WITHIN THE SUBSET OF LESS-ENGAGED PARTICIPANTS
 print("day,mbefore,sdbefore,mafter,sdafter,t,p,d")
 for (i in 1:7) {
     print(paste0("------- Day ", i, " -------"))
@@ -711,7 +703,6 @@ for (i in 1:7) {
     ttest <- t.test(x, y, paired = TRUE)
     cd <- cohen.d(x, y, paired = TRUE)
     
-    # Print the results in this format: MBefore = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
     print(paste0(i, "; MBefore = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "before"]), 2), ") vs. MAfter = ", round(mean(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), " (", round(sd(d_long_exp_day$loneliness[d_long_exp_day$timepoint == "after"]), 2), "), t(", round(ttest$parameter, 2), ") = ", round(ttest$statistic, 2), ", p < .001", ", d = ", round(cd$estimate, 2)))
 }
 

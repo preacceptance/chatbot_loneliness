@@ -16,7 +16,8 @@ pacman::p_load('ggplot2',
                'reshape2',
                'pwr',
                'ltm',
-               'BayesFactor')
+               'BayesFactor',
+               'sjstats')
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #set working directory to current directory
 
@@ -85,6 +86,8 @@ d$distraction <- rowMeans(d[, c(
 # anova
 aov_res <- aov(distraction ~ condition, data = d)
 summary(aov_res)
+
+anova_stats(aov_res)
 
 # post-hoc
 TukeyHSD(aov_res)

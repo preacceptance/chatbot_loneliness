@@ -15,7 +15,8 @@ pacman::p_load('ggplot2',
                'exact2x2',
                'reshape2',
                'pwr',
-               'ltm')
+               'ltm',
+               'sjstats')
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #set working directory to current directory
 
@@ -167,6 +168,7 @@ for (var in c('loneliness_reduction', 'heard', 'perf')) {
 # Run a one-way ANOVA for loneliness reduction
 anova_loneliness <- aov(loneliness_reduction ~ condition, data = d)
 summary(anova_loneliness)
+anova_stats(anova_loneliness)
 
 # Tukey's Honest Significant Difference (HSD) test
 TukeyHSD(anova_loneliness)
@@ -175,6 +177,7 @@ TukeyHSD(anova_loneliness)
 
 anova_feeling_heard <- aov(heard ~ condition, data = d)
 summary(anova_feeling_heard)
+anova_stats(anova_feeling_heard)
 
 TukeyHSD(anova_feeling_heard)
 
@@ -182,11 +185,11 @@ TukeyHSD(anova_feeling_heard)
 
 anova_perf <- aov(perf ~ condition, data = d)
 summary(anova_perf)
+anova_stats(anova_perf)
 
 TukeyHSD(anova_perf)
 
 ###################### PLOTTING ######################
-
 
 plotter <- function(y_var='value', title='') {
     p1 <- ggplot(d_long, aes_string(x = 'condition', y = y_var)) + #, fill = 'lonely'

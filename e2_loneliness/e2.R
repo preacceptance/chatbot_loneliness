@@ -30,15 +30,6 @@ pacman::p_load('ggplot2',         # plotting
                'car'
 )
 
-# Power analysis to determine sample size with d = 0.25, alpha = 0.05, power = 0.8
-pwr.t.test(d = 0.5, sig.level = 0.05, power = 0.95, type = "paired") 
-
-pwr.t.test(d = 0.21, sig.level = 0.05, power = 0.95)
-
-pwr.t.test(d = 0.18, sig.level = 0.05, power = 0.95, type = "paired")
-
-pwr.t.test(d = 0.22, sig.level = 0.05, power = 0.95)
-
 ## ================================================================================================================
 ##                                                  PRE-PROCESSING
 ## ================================================================================================================
@@ -197,7 +188,7 @@ prepare_data <- function(condition, d, qs) {
     }
     
     d_merged_cond <- data.frame(matrix(nrow = dim(d_cond)[1] * 2, ncol = length(qs) + 2))
-    d_merged_cond$prediction_after <- c(rep(c(1), each = dim(d_cond)[1]), rep(c(2), each = dim(d_cond)[1])) # 1 = prediction, 2 = after interaction
+    d_merged_cond$before_after <- c(rep(c(1), each = dim(d_cond)[1]), rep(c(2), each = dim(d_cond)[1])) # 1 = prediction, 2 = after interaction
     d_merged_cond$interacting_with <- c(rep(condition, each = dim(d_cond)[1] * 2))
     
     return(list(d_cond = d_cond, d_merged_cond = d_merged_cond))
@@ -311,8 +302,8 @@ for(condition in conditions) {
 
     for (question in questions) {
         d_merged_cond <- process_question(question, d_cond, d_merged_cond)
-        before <- d_merged_cond[d_merged_cond$prediction_after == 1, question]
-        after <- d_merged_cond[d_merged_cond$prediction_after == 2, question]
+        before <- d_merged_cond[d_merged_cond$before_after == 1, question]
+        after <- d_merged_cond[d_merged_cond$before_after == 2, question]
 
         print("printing...")
         q_significance_list <- print_results(before, after, q_significance_list, question)
@@ -363,7 +354,7 @@ plotter <- function(y_var, y_var_str, title) {
         y_pos <- c(90, 90, 90, 90, 90)
     }
 
-    p1 <- ggplot(d_merged_plot, aes(x = factor(column_label, level=conditions), y = y_var, fill = factor(prediction_after)), color = factor(prediction_after)) +
+    p1 <- ggplot(d_merged_plot, aes(x = factor(column_label, level=conditions), y = y_var, fill = factor(before_after)), color = factor(before_after)) +
     theme_bw() +
     coord_cartesian(ylim = y_lim) +
     scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
@@ -433,7 +424,7 @@ ggsave("./plots/supplemental_plot.pdf", last_plot(), dpi = 500, limitsize = FALS
 
 # Check results
 d_merged_plot %>%
-    group_by(interacting_with, prediction_after) %>%
+    group_by(interacting_with, before_after) %>%
     summarise(mean_lonely_connect=mean(lonely_connect_mean), mean_state_loneliness_scale=mean(loneliness_scale))
 
 ######################## EFFECT SIZES ########################
@@ -458,8 +449,8 @@ for (condition in conditions) {
 
     # Process the defined question
     d_merged_cond <- process_question(question, d_cond, d_merged_cond)
-    before <- d_merged_cond[d_merged_cond$prediction_after == 1, question]
-    after <- d_merged_cond[d_merged_cond$prediction_after == 2, question]
+    before <- d_merged_cond[d_merged_cond$before_after == 1, question]
+    after <- d_merged_cond[d_merged_cond$before_after == 2, question]
 
     # Initialize the list for this condition
     effect_sizes[[condition]] <- list()
