@@ -191,41 +191,41 @@ TukeyHSD(anova_perf)
 
 ###################### PLOTTING ######################
 
+# Create a long format of the data, i.e., before and after loneliness ratings in separate rows
+d_long <- melt(d, id.vars = c('condition', 'worker_id'), measure.vars = c('lonely_before', 'lonely_after'))
+
+# Rename lonely_before as before and lonely_after as after.
+d_long$variable <- ifelse(d_long$variable == "lonely_before", "Pre", "Post")
+d_long$variable <- factor(d_long$variable, levels = c("Pre", "Post"))
+d_long$condition <- factor(d_long$condition, levels = c('Control', 'AI Assistant', 'AI Companion'))
+# Then change 'variable' column name to 'lonely'
+d_long <- d_long %>% rename(lonely = variable)
+
 plotter <- function(y_var='value', title='') {
-    p1 <- ggplot(d_long, aes_string(x = 'condition', y = y_var)) + #, fill = 'lonely'
-        geom_bar(position="dodge", stat="summary", width = 0.9, alpha = 1, size = 0.75) +
-        stat_summary(fun.data = "mean_cl_boot", color = "black",
+  p1 <- ggplot(d_long, aes_string(x = 'condition', y = y_var, fill = 'lonely')) +
+    geom_bar(position="dodge", stat="summary", width = 0.9, alpha = 1, size = 0.75) +
+    stat_summary(fun.data = "mean_cl_boot", color = "black",
                  size = 0.4,
                  position = position_dodge(width = 0.9), geom = "errorbar", width = 0.2) +
-        stat_summary(fun.data = "mean_cl_boot", color = "black",
-                    position = position_dodge(width = 0.9)) +
-        theme_bw() +
-        theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-        ggtitle(title) +
-        #scale_fill_manual(values = c("#cccccc", "#666666"), name = "Timing Relative to Experience:", guide = guide_legend(reverse = FALSE)) +
-        xlab("") +
-        ylab("") +
-        theme_classic() +
-        theme(axis.text.x = element_text(size = 16)) +
-        theme(axis.text.y = element_text(size = 16)) +
-        theme(plot.title = element_text(size = 18, hjust = 0.5)) +
-        theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18))
-
-    return(p1)
+    stat_summary(fun.data = "mean_cl_boot", color = "black",
+                 position = position_dodge(width = 0.9)) +
+    theme_bw() +
+    theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    ggtitle(title) +
+    scale_fill_manual(values = c("#cccccc", "#666666"), name = "Timing Relative to Experience:", guide = guide_legend(reverse = FALSE)) +
+    xlab("") +
+    ylab("") +
+    theme_classic() +
+    theme(axis.text.x = element_text(size = 16)) +
+    theme(axis.text.y = element_text(size = 16)) +
+    theme(plot.title = element_text(size = 18, hjust = 0.5)) +
+    theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18))
+  
+  return(p1)
 }
 
-d_long <- melt(d, id.vars = c('condition', 'worker_id'), measure.vars = c('lonely_before', 'lonely_after'))
 p1 <- plotter()
 ggsave("plots/plot.pdf", last_plot(), dpi = 500, width = 10, height = 6)
-
-# Also plot feeling heard and performance (no pre-post there, just mean values)
-d_long <- melt(d, id.vars = c('condition', 'worker_id'), measure.vars = c('heard'))
-p2 <- plotter(title='Feeling Heard')
-ggsave("plots/plot_heard.pdf", last_plot(), dpi = 500, width = 5, height = 6)
-
-d_long <- melt(d, id.vars = c('condition', 'worker_id'), measure.vars = c('perf'))
-p3 <- plotter(title='Performance')
-ggsave("plots/plot_perf.pdf", last_plot(), dpi = 500, width = 5, height = 6)
 
 ###################### LONELINESS REDUCTION AND BASELINE LONELINESS LEVELS ######################
 
