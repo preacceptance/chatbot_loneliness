@@ -170,7 +170,7 @@ d_review_all$contains_loneliness_llm <- as.numeric(d_review_all$contains_lonelin
 
 # Also plot a similar plot, with app in the x-axis, and loneliness percentage in the y-axis.
 # Apps should be ordered based on their average rating
-d_review_all$app <- factor(d_review_all$app, levels = c('replika', 'chai', 'igirl', 'simsimi', 'cleverbot', 'chatgpt', 'wysa'))
+d_review_all$app <- factor(d_review_all$app, levels = c('chai', 'chatgpt', 'cleverbot', 'igirl', 'replika', 'simsimi', 'wysa'))
 
 d_app <- d_review_all %>%
   group_by(app) %>%
@@ -188,11 +188,11 @@ d_plot <- d_review_all %>%
             ci_rating = 1.96 * sd_rating / sqrt(n()))
 
 # Order apps in d_plot based on their mean rating
-apporder <- c('wysa', 'replika' , 'chatgpt', 'igirl', 'simsimi', 'chai', 'cleverbot')
+apporder <- c('chai', 'chatgpt', 'cleverbot', 'igirl', 'replika', 'simsimi', 'wysa')
 d_plot$app <- factor(d_plot$app, levels = apporder)
 
 # Replace the app names with more readable names
-d_plot$app <- factor(d_plot$app, labels = c('Wysa', 'Replika', 'ChatGPT', 'iGirl', 'SimSimi', 'Chai', 'Cleverbot'))
+d_plot$app <- factor(d_plot$app, labels = c('Chai', 'ChatGPT', 'Cleverbot', 'iGirl', 'Replika', 'SimSimi', 'Wysa'))
 
 barplot <- ggplot(d_plot, aes(x = app, y = mean_rating, fill = factor(contains_loneliness_llm))) +
   geom_bar(position="dodge", stat="identity", width = 0.9, alpha = 1, size = 0.75) +
@@ -213,4 +213,4 @@ barplot <- ggplot(d_plot, aes(x = app, y = mean_rating, fill = factor(contains_l
 print(barplot)
 
 # ggsave as pdf
-ggsave("review_data/loneliness_rating.pdf", plot = barplot, width = 16, height = 5)
+ggsave("plotting/loneliness_rating.pdf", plot = barplot, width = 16, height = 5)

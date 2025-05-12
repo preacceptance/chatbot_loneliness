@@ -92,9 +92,6 @@ print(paste0("Excluding participants in YouTube condition who did not follow the
 print("Excluding participants who was not able to do nothing")
 d <- d[d$able_nothing != 2,]
 
-# Print the table of conditions
-print(table(d$condition, d$condition_2))
-
 ############################################ END OF EXCLUSIONS ############################################
 
 # Print number of participants from each condition
@@ -102,9 +99,6 @@ print(paste0("Number of participants in each condition: "))
 print(table(d$condition, d$condition_2))
 
 print(paste0("AI Experience: ", dim(d[d$chatbot == 1,])[1] / dim(d)[1]))
-
-#ai_companion_usage <- read.csv('./data/ai_companion_usage.csv', sep=";")
-#print(paste0("AI Companion Usage: ", dim(ai_companion_usage[ai_companion_usage$actual_ai_companion_usage == 1,])[1] / dim(ai_companion_usage)[1]))
 
 ############################################ PREPARING DATA ############################################
 
@@ -170,12 +164,15 @@ prepare_data <- function(condition, d, qs) {
     if(condition == 'Human') {
         d_cond <- d[(d$condition == 'another person') & (d$condition_2 == '0'),]
         d[(d$condition == 'another person') & (d$condition_2 == '0'), 'agent_cond'] <- condition
-    } else if(condition == 'Chatbot Acting Like Human') {
+    } else if(condition == 'Chatbot Acting Like Human (Believed)') {
         d_cond <- d[(d$condition == 'another person') & (d$condition_2 == 'ai'),]
         d[(d$condition == 'another person') & (d$condition_2 == 'ai'), 'agent_cond'] <- condition
     } else if(condition == 'Chatbot Acting Like Human (Not Believed)') {
         d_cond <- d[(d$condition == 'not_believed_is_human'),]
         d[(d$condition == 'not_believed_is_human'), 'agent_cond'] <- condition
+    } else if(condition == 'Chatbot Acting Like Human') {
+      d_cond <- d[((d$condition == 'another person') & (d$condition_2 == 'ai')) | (d$condition == 'not_believed_is_human'),]
+      d[((d$condition == 'another person') & (d$condition_2 == 'ai')) | (d$condition == 'not_believed_is_human'), 'agent_cond'] <- condition
     } else if(condition == 'Chatbot') {
         d_cond <- d[(d$condition == 'conversational AI companion'),]
         d[(d$condition == 'conversational AI companion'), 'agent_cond'] <- condition
@@ -187,9 +184,12 @@ prepare_data <- function(condition, d, qs) {
         d[(d$condition == 'nothing'), 'agent_cond'] <- condition
     }
     
-    d_merged_cond <- data.frame(matrix(nrow = dim(d_cond)[1] * 2, ncol = length(qs) + 2))
+    d_merged_cond <- data.frame(matrix(nrow = dim(d_cond)[1] * 2, ncol = length(qs) + 4))
     d_merged_cond$before_after <- c(rep(c(1), each = dim(d_cond)[1]), rep(c(2), each = dim(d_cond)[1])) # 1 = prediction, 2 = after interaction
     d_merged_cond$interacting_with <- c(rep(condition, each = dim(d_cond)[1] * 2))
+    
+    d_merged_cond$ai_att <- c(d_cond$ai_att, d_cond$ai_att)
+    d_merged_cond$participant_id <- c(d_cond$workerId, d_cond$workerId)
     
     return(list(d_cond = d_cond, d_merged_cond = d_merged_cond))
 }
@@ -200,8 +200,6 @@ prepare_data <- function(condition, d, qs) {
 # - d_cond: the data frame for the current condition
 # - d_merged_cond: the merged data frame for the current condition
 process_question <- function(question, d_cond, d_merged_cond) {
-    print(paste0("*-*-*-*-*-*-*-*-*-* ", question, " *-*-*-*-*-*-*-*-*-*"))
-  
     if(question == 'lonely_connect_mean') {
         result <- process_lonely_connect_mean(question, d_cond)
     } else {
@@ -214,10 +212,7 @@ process_question <- function(question, d_cond, d_merged_cond) {
     d_merged_cond[, question] <- as.numeric(c(before, after))
     d_merged_cond[, paste0(question, "_diff")] <- as.numeric(before - after)
 
-    if(length(before) > 0) {
-        print("OK")
-        #print_results(before, after, list(), question)
-    } else {
+    if(length(before) <= 0) {
         print("ERROR: Check the code")
     }
     
@@ -266,28 +261,21 @@ process_other_questions <- function(question, d_cond) {
 }
 
 print_results <- function(before, after, q_significance_list, question) {
-    print(paste0("Sample Size:", length(before)))
-    print(paste0("Sample Size:", length(after)))
     vart <- var.test(before, after)
-    tt <- t.test(before, after, paired = TRUE, var.equal = vart$p.value > 0.05)
-
-    q_significance_list[[question]] <- print_sig(tt$p.value)
+    ttest <- t.test(before, after, paired = TRUE, var.equal = vart$p.value > 0.05)
+    cd <- cohen.d(before, after, paired = TRUE)
     
-    print(tt)
-    print(paste0("Mean of before: ", mean(before)))
-    print(paste0("Mean of after: ", mean(after)))
-    print(paste0("SD of before: ", sd(before)))
-    print(paste0("SD of after: ", sd(after)))
+    print(paste0(round(mean(before), 2), " (", round(sd(before), 2), "), ", round(mean(after), 2), " (", round(sd(after), 2), "), ", round(ttest$parameter, 2), ", ", round(ttest$statistic, 2), ", ", ifelse(ttest$p.value < .001, "< .001", sprintf("%s", round(ttest$p.value, 3) )), ", ", round(cd$estimate, 2)))
 
-    print(cohen.d(before, after))
+    q_significance_list[[question]] <- print_sig(ttest$p.value)
     return (q_significance_list)
 }
 
 ###########################################################################
 
 ######### T-TESTS COMPARING EXPECTED VS. ACTUAL and BEFORE VS: AFTER RATINGS FOR EACH CONDITION #########
-conditions <- c('Doing Nothing', 'Human', 'Chatbot', 'Chatbot Acting Like Human', 'YouTube', 'Chatbot Acting Like Human (Not Believed)')
-questions <- c('lonely_connect_mean', 'loneliness_scale', 'entertain', 'novel', 'engage', 'comfort', 'interest')
+conditions <- c('Doing Nothing', 'Human', 'Chatbot', 'Chatbot Acting Like Human', 'YouTube', 'Chatbot Acting Like Human (Believed)', 'Chatbot Acting Like Human (Not Believed)')
+questions <- c('loneliness_scale', 'lonely_connect_mean', 'entertain', 'novel', 'engage', 'comfort', 'interest', 'entertain', 'novel', 'engage', 'comfort', 'interest')
 d_merged_list <- list()
 significance_list <- list()
 
@@ -305,7 +293,6 @@ for(condition in conditions) {
         before <- d_merged_cond[d_merged_cond$before_after == 1, question]
         after <- d_merged_cond[d_merged_cond$before_after == 2, question]
 
-        print("printing...")
         q_significance_list <- print_results(before, after, q_significance_list, question)
     }
 
@@ -315,30 +302,19 @@ for(condition in conditions) {
 
 d_merged_plot <- bind_rows(d_merged_list, .id = "column_label")
 
-# and this loneliness reduction was not significantly different compared to the subset that was successfully deceived 
-loneliness_diff_chatbot <- d_merged_plot[d_merged_plot$interacting_with == 'Chatbot Acting Like Human', 'loneliness_scale_diff']
-loneliness_diff_chatbot_not_believed <- d_merged_plot[d_merged_plot$interacting_with == 'Chatbot Acting Like Human (Not Believed)', 'loneliness_scale_diff']
-
-# Print SDs
-print(paste0("SD of Chatbot Acting Like Human: ", sd(loneliness_diff_chatbot)))
-print(paste0("SD of Chatbot Acting Like Human (Not Believed): ", sd(loneliness_diff_chatbot_not_believed)))
-
-t_test_result <- t.test(loneliness_diff_chatbot, loneliness_diff_chatbot_not_believed)
-print(t_test_result)
-
-cohen_d <- cohen.d(loneliness_diff_chatbot, loneliness_diff_chatbot_not_believed)
-print(cohen_d)
-
-# For plotting, remove 'Chatbot Acting Like Human (Not Believed)'
-d_merged_plot <- d_merged_plot[d_merged_plot$interacting_with != 'Chatbot Acting Like Human (Not Believed)',]
+# For plotting, remove 'Chatbot Acting Like Human (Not Believed) and 'Chatbot Acting Like Human (Believed)'
+d_merged_plot <- d_merged_plot[!d_merged_plot$interacting_with %in% c('Chatbot Acting Like Human (Believed)', 'Chatbot Acting Like Human (Not Believed)'), ]
 
 ######################## SINGLE PLOT, CONSISTING OF ALL CONDITIONS AND LONELY & CONNECTED DV's ########################
+
+conditions <- c('Doing Nothing', 'Human', 'Chatbot', 'Chatbot Acting Like Human', 'YouTube')
 
 ## plotting all measures
 a_names <- conditions
 interaction_conds <- c('Pre', 'Post')
 
 significance_list[['Chatbot Acting Like Human (Not Believed)']] <- NULL
+significance_list[['Chatbot Acting Like Human (Believed)']] <- NULL
 
 plotter <- function(y_var, y_var_str, title) {
     stars <- c()
@@ -501,6 +477,7 @@ for (condition in names(effect_sizes)) {
 }
 
 effect_sizes_df <- effect_sizes_df[effect_sizes_df$Condition != "Chatbot Acting Like Human (Not Believed)",]
+effect_sizes_df <- effect_sizes_df[effect_sizes_df$Condition != "Chatbot Acting Like Human (Believed)",]
 
 # Assuming 'effect_sizes_df' has columns 'EffectSize', 'Threshold', and 'Condition'
 # Make Doing Nothing the reference level
@@ -529,3 +506,72 @@ plot <- ggplot(effect_sizes_df, aes(x = Threshold, y = EffectSize, color = Condi
 
 # Save the plot
 ggsave("./plots/effect_sizes.pdf", plot, width = 8, height = 6, dpi = 300)
+
+
+###### Exploratory moderation
+
+# Let's see if there is any moderation (hayes model 1) of ai_att on lonely, connect, comfort
+# IV = before/after, DV = lonely/connect/comfort, MOD = ai_att
+# Create a new data frame for the moderation analysis
+mod_data <- data.frame()
+
+questions_mod <- c('lonely', 'connect', 'comfort')
+
+# Loop through conditions to build dataset
+data <- prepare_data('Chatbot', d, questions_mod)
+d_cond <- data$d_cond
+d_merged_cond <- data$d_merged_cond
+
+
+prepare_data('another person', d, questions_mod)
+
+# Process questions
+for (question in questions_mod) {
+  d_merged_cond <- process_question(question, d_cond, d_merged_cond)
+}
+
+# Add to combined dataset
+mod_data <- rbind(mod_data, d_merged_cond)
+
+source("../process.R")
+
+for (dv in questions_mod) {
+  print(paste0("--- Moderation for ", dv, " ---"))
+  
+  # Run PROCESS Model 1 (simple moderation)
+  process(data = mod_data, 
+          y = dv, 
+          x = "before_after", 
+          w = "ai_att", 
+          model = 1)
+}
+
+
+###### Ruling our bias based on time of participation
+
+if(FALSE) {
+  # Convert StartDate to POSIXct
+  d$time <- as.POSIXct(d$StartDate, format="%Y-%m-%d %H:%M:%S")
+  
+  # Extract hour and minute as decimal (e.g., 14.25 = 14:15)
+  d$hour_of_day <- as.numeric(format(d$time, "%H")) + as.numeric(format(d$time, "%M")) / 60
+  
+  # Subset: deception condition (-5555 code)
+  d_5555 <- d[grepl("-5555", d$completion_code),]
+  
+  # Subset: human condition (told it's another person and actually matched)
+  d_human <- d[d$condition == 'another person' & d$condition_2 == '0',]
+  
+  # Print mean hour of day for both groups
+  cat("Mean hour for deception (-5555):", mean(d_5555$hour_of_day), "\n")
+  cat("SD hour for deception (-5555):", sd(d_5555$hour_of_day), "\n")
+  cat("Mean hour for human condition:", mean(d_human$hour_of_day), "\n")
+  cat("SD hour for human condition:", sd(d_human$hour_of_day), "\n")
+  
+  # T-test comparing hour of day between the two groups
+  vart <- var.test(d_5555$hour_of_day, d_human$hour_of_day)
+  t_test_result <- t.test(d_5555$hour_of_day, d_human$hour_of_day, var.equal = vart$p.value > 0.05)
+  print(t_test_result)
+  
+  cohen.d(d_5555$hour_of_day, d_human$hour_of_day)
+}

@@ -14,7 +14,9 @@ pacman::p_load('ggplot2',
                'interactions',
                'exact2x2',
                'reshape2',
-               'ltm', 'boot', 'simr')
+               'ltm', 'boot', 'simr', 'pwr')
+
+pwr.t.test(d = 0.11, power = 0.80, sig.level = 0.05)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #set working directory to current directory
 
@@ -209,58 +211,89 @@ d_long_engagement <- merge(d_long, engagement, by = c("worker_id", "day"), all.x
 
 # Now, plot loneliness scores over all days, for all conditions. We should have 5 lines in total: control, exp_before, exp_after, pred_before, pred_after
 # We should use the 'day' column for all conditions except for the prediction condition, where we should use 'day' and 'timepoint' columns
-ggplot(data = d_long, aes(x = day, y = loneliness, color = condition, fill = condition, group = interaction(condition, timepoint), linetype = timepoint)) +
-    stat_summary(fun = mean, geom = "line") +
-    stat_summary(fun = mean, geom = "point") +
+# Create a new column for line type that depends on condition
+# Create a new column for line type that depends on condition
+d_long$line_type <- ifelse(d_long$condition == "Experience", "solid", "dashed")
+
+# Create a column to determine shape based on condition and timepoint
+d_long$point_shape <- ifelse(d_long$condition == "Control", 
+                            ifelse(d_long$timepoint == "before", 2, 17),  # Triangles for Control (2=empty, 17=filled)
+                            ifelse(d_long$condition == "Experience",
+                                  ifelse(d_long$timepoint == "before", 1, 16),  # Circles for Experience (1=empty, 16=filled)
+                                  ifelse(d_long$timepoint == "before", 0, 15)))  # Squares for Prediction (0=empty, 15=filled)
+
+
+d_long_no_pred <- d_long %>%
+  filter(condition != "Prediction")
+
+
+ggplot(data = d_long_no_pred, aes(x = day, y = loneliness, color = condition, fill = condition, 
+                          group = interaction(condition, timepoint))) +
+    stat_summary(aes(linetype = line_type), fun = mean, geom = "line", size = 1) +
+    stat_summary(aes(shape = point_shape), fun = mean, geom = "point", size = 5) +  # Using custom point shape
     # Add 95% confidence intervals
     stat_summary(fun.data = mean_cl_normal, fun.args=list(conf.int=0.95), geom = "ribbon", alpha = 0.04, colour = NA) +
-    scale_fill_manual(values = c("Control" = "green", "Experience" = "blue", "Prediction" = "white")) +
-    scale_color_manual(values = c("Control" = "green", "Experience" = "blue", "Prediction" = "white")) +
+    scale_fill_manual(values = c("Control" = "black", "Experience" = "black", "Prediction" = "white")) +
+    scale_color_manual(values = c("Control" = "black", "Experience" = "black", "Prediction" = "white")) +
+    scale_shape_identity() +  # Use the shapes directly from point_shape
+    scale_linetype_identity() +
+    scale_y_continuous(breaks = c(30, 40, 50), expand = c(0, 0)) +  # Use consistent breaks without strict limits
+    coord_cartesian(ylim = c(20, 50)) +  # Set the visible y-axis range without clipping data
     theme_minimal() +
     theme_classic() +
     labs(title = "",
          x = "Day",
          y = "Loneliness Score",
-         color = "Group",
-         linetype = "Timepoint") +
+         color = "Group") +
+    guides(linetype = "none") +  # Hide the linetype legend
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text.x = element_text(size = 16)) +
     theme(axis.text.y = element_text(size = 16)) +
     theme(plot.title = element_text(size = 0, hjust = 0.5)) +
     theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18)) +
     theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-    theme(legend.position = "top", legend.direction = "horizontal")
+    theme(legend.position = "none")
 
 # Save the plot in a pdf file
 ggsave("plots/loneliness_scores_over_7_days_1.pdf", width = 8, height = 6)
 
+
 # Now, plot loneliness scores over all days, for all conditions. We should have 5 lines in total: control, exp_before, exp_after, pred_before, pred_after
 # We should use the 'day' column for all conditions except for the prediction condition, where we should use 'day' and 'timepoint' columns
-ggplot(data = d_long, aes(x = day, y = loneliness, color = condition, fill = condition, group = interaction(condition, timepoint), linetype = timepoint)) +
-    stat_summary(fun = mean, geom = "line") +
-    stat_summary(fun = mean, geom = "point") +
+# Filter out the Control condition for this plot
+d_long_no_control <- d_long %>%
+  filter(condition != "Control")
+
+# Plot without Control condition
+ggplot(data = d_long_no_control, aes(x = day, y = loneliness, color = condition, fill = condition, 
+                          group = interaction(condition, timepoint))) +
+    stat_summary(aes(linetype = line_type), fun = mean, geom = "line", size = 1) +
+    stat_summary(aes(shape = point_shape), fun = mean, geom = "point", size = 5) +  # Using custom point shape
     # Add 95% confidence intervals
     stat_summary(fun.data = mean_cl_normal, fun.args=list(conf.int=0.95), geom = "ribbon", alpha = 0.04, colour = NA) +
-    scale_fill_manual(values = c("Control" = rgb(1, 1, 1, 0), "Experience" = "blue", "Prediction" = "red")) +
-    scale_color_manual(values = c("Control" = rgb(1, 1, 1, 0), "Experience" = "blue", "Prediction" = "red")) +
+    scale_fill_manual(values = c("Experience" = "black", "Prediction" = "black")) +
+    scale_color_manual(values = c("Experience" = "black", "Prediction" = "black")) +
+    scale_shape_identity() +  # Use the shapes directly from point_shape
+    scale_linetype_identity() +
+    scale_y_continuous(breaks = c(30, 40, 50), expand = c(0, 0)) +  # Use consistent breaks without strict limits
+    coord_cartesian(ylim = c(20, 50)) +  # Set the visible y-axis range without clipping data
     theme_minimal() +
     theme_classic() +
     labs(title = "",
          x = "Day",
          y = "Loneliness Score",
-         color = "Group",
-         linetype = "Timepoint") +
+         color = "Group") +
+    guides(linetype = "none") +  # Hide the linetype legend
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(axis.text.x = element_text(size = 16)) +
     theme(axis.text.y = element_text(size = 16)) +
     theme(plot.title = element_text(size = 0, hjust = 0.5)) +
     theme(legend.text = element_text(size = 16), legend.title = element_text(size = 18)) +
     theme(text = element_text(size = 18), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-    theme(legend.position = "top", legend.direction = "horizontal")
+    theme(legend.position = "none")
 
 # Save the plot in a pdf file
 ggsave("plots/loneliness_scores_over_7_days_2.pdf", width = 8, height = 6)
-
 
 # Print mean loneliness before and after in all conditions, to check if the plot is correct
 d_summary <- d_long %>%
@@ -336,7 +369,7 @@ cd <- cohen.d(x, y, paired = TRUE); print(cd)
 print(paste0("Mean before: ", mean(x)))
 print(paste0("Mean after: ", mean(y)))
 
-# Table S3: PAIRED T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION
+# PAIRED T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION
 print("day,mbefore,sdbefore,mafter,sdafter,t,p,d")
 for (i in 1:7) {
     print(paste0("------- Day ", i, " -------"))
@@ -373,7 +406,7 @@ d_long_control_expafter$day <- as.numeric(as.factor(d_long_control_expafter$day)
 model_control <- lmer(loneliness ~ condition * day + (1|worker_id), data = d_long_control_expafter)
 summary(model_control)
 
-# Table S4: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION
+# T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION
 for (i in 1:7) {
     d_long_control_exp_day <- d_long %>%
         filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
@@ -384,6 +417,19 @@ for (i in 1:7) {
 
     # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
     print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MAfter = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
+}
+
+# T-TESTS COMPARING LONELINESS IN CONTROL VS. BEFORE INTERACTION
+for (i in 1:7) {
+  d_long_control_exp_day <- d_long %>%
+    filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "before")))
+  x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
+  y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "before" & d_long_control_exp_day$condition == "Experience"]
+  ttest_control_exp <- t.test(x, y, paired = FALSE)
+  cd <- cohen.d(x, y, paired = FALSE)
+  
+  # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
+  print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MBefore = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
 }
 
 
@@ -471,7 +517,7 @@ table(d_long_high_loneliness$condition, d_long_high_loneliness$day, d_long_high_
 table(d_long_low_loneliness$condition, d_long_low_loneliness$day, d_long_low_loneliness$timepoint)
 
 
-# TABLE S6: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION WITHIN THE SUBSET OF LONELY USERS
+# T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION WITHIN THE SUBSET OF LONELY USERS
 for (i in 1:7) {
     d_long_control_exp_day <- d_long_high_loneliness %>%
         #filter(day == i & (condition == "Experience"))
@@ -484,96 +530,6 @@ for (i in 1:7) {
     # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
     print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MAfter = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
 
-}
-
-
-################################ BOOTSTRAPPING WITH REPLACEMENT ################################
-
-set.seed(123)  # For reproducibility
-
-# TABLE S5: T-TESTS COMPARING LONELINESS IN CONTROL VS. AFTER INTERACTION, AFTER BOOTSTRAPPING
-for (i in 1:7) {
-    print(paste0("------- Day ", i, " -------"))
-    d_long_control_exp_day <- d_long %>%
-        filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
-    x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
-    y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
-    
-    # Combine x and y into a data frame
-    data_combined <- data.frame(
-        loneliness = c(x, y),
-        group = rep(c("Control", "Experience"), times = c(length(x), length(y)))
-    )
-    
-    # Double the sample size by bootstrapping
-    n_bootstrap <- 2000  # Number of bootstrap samples
-    t_values <- numeric(n_bootstrap)
-    p_values <- numeric(n_bootstrap)
-    cohen_d_values <- numeric(n_bootstrap)
-    control_values <- numeric(n_bootstrap)
-    experience_values <- numeric(n_bootstrap)
-    dof_values <- numeric(n_bootstrap)
-    
-    for (b in 1:n_bootstrap) {
-        # Resample with replacement
-        x_bootstrap <- sample(x, size = 4 * length(x), replace = TRUE)
-        y_bootstrap <- sample(y, size = 4 * length(y), replace = TRUE)
-        
-        # Combine into a data frame
-        data_bootstrap <- data.frame(
-            loneliness = c(x_bootstrap, y_bootstrap),
-            group = rep(c("Control", "Experience"), times = c(length(x_bootstrap), length(y_bootstrap)))
-        )
-        
-        # Perform t-test
-        control <- data_bootstrap[data_bootstrap$group == "Control", "loneliness"]
-        experience <- data_bootstrap[data_bootstrap$group == "Experience", "loneliness"]
-
-        ttest <- t.test(control, experience, data = data_bootstrap)
-        t_values[b] <- ttest$statistic
-        p_values[b] <- ttest$p.value
-        control_values[b] <- mean(control)
-        experience_values[b] <- mean(experience)
-        dof_values[b] <- ttest$parameter
-        
-        # Calculate Cohen's d
-        cd <- cohen.d(x_bootstrap, y_bootstrap, paired = FALSE)
-        cohen_d_values[b] <- cd$estimate
-    }
-    
-    # Calculate the mean t-statistic, mean p-value, mean effect size, and mean degrees of freedom
-    mean_t <- mean(t_values)
-    mean_p <- mean(p_values)
-    mean_d <- mean(cohen_d_values)
-    mean_control <- round(mean(control_values), 2)
-    sd_control <- round(sd(control_values), 2)
-    mean_experience <- round(mean(experience_values), 2)
-    sd_experience <- round(sd(experience_values), 2)
-    mean_dof <- round(mean(dof_values), 2)
-    
-    # Print the bootstrapped results
-    print(paste0(i, " (Bootstrapped); MControl = ", mean_control, " (", sd_control, ")", ", MExp = ", mean_experience, " (", sd_experience, "), ", " Mean t = ", round(mean_t, 2), ", Mean p = ", round(mean_p, 3), ", Mean d = ", round(mean_d, 2), ", Mean dof = ", round(mean_dof, 2)))
-}
-
-################################### BOOTSTRAPPING WITHOUT REPLACEMENT ################################
-
-for (i in 1:7) {
-    print(paste0("------- Day ", i, " -------"))
-    d_long_control_exp_day <- d_long %>%
-        filter(day == i & (condition == "Control" | (condition == "Experience" & timepoint == "after")))
-    x <- d_long_control_exp_day$loneliness[d_long_control_exp_day$condition == "Control"]
-    y <- d_long_control_exp_day$loneliness[d_long_control_exp_day$timepoint == "after" & d_long_control_exp_day$condition == "Experience"]
-    
-    # Double the sample size by sampling with replacement
-    x_bootstrap <- c(x, x) #sample(x, size = 2 * length(x), replace = FALSE)
-    y_bootstrap <- c(y, y) #sample(y, size = 2 * length(y), replace = FALSE)
-
-    # Perform t-test on bootstrapped samples
-    ttest_control_exp <- t.test(x_bootstrap, y_bootstrap, paired = FALSE)
-    cd <- cohen.d(x_bootstrap, y_bootstrap, paired = FALSE)
-    
-    # Print the results
-    print(paste0(i, " (Bootstrapped); MControl = ", round(mean(x_bootstrap), 2), " (", round(sd(x_bootstrap), 2), ") vs. MAfter = ", round(mean(y_bootstrap), 2), " (", round(sd(y_bootstrap), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
 }
 
 ######################## EXPLORATORY ANALYSES ##########################
@@ -692,7 +648,7 @@ participants_low_n_messages <- na.omit(unique(d_long_engagement[d_long_engagemen
 d_long_engagement_low_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_high_n_messages),]
 d_long_engagement_high_n_messages <- d_long_engagement[!(d_long_engagement$worker_id %in% participants_low_n_messages),]
 
-# TABLE S7: T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION WITHIN THE SUBSET OF LESS-ENGAGED PARTICIPANTS
+# T-TESTS COMPARING LONELINESS BEFORE VS. AFTER INTERACTION WITHIN THE SUBSET OF LESS-ENGAGED PARTICIPANTS
 print("day,mbefore,sdbefore,mafter,sdafter,t,p,d")
 for (i in 1:7) {
     print(paste0("------- Day ", i, " -------"))
@@ -708,7 +664,7 @@ for (i in 1:7) {
 
 ###################### PROPENSITY SCORE MATCHING ######################
 
-if(FALSE) { # Make TRUE if you want to run this
+if(TRUE) { # Make TRUE if you want to run this
 
   # First, we will run a propensity score matching analysis to match participants in the control and experience conditions based on
   # Gender, Relationship status, Age, AI experience, and Household Income
@@ -859,8 +815,8 @@ if(FALSE) { # Make TRUE if you want to run this
   }
   
   # Show the plot
-  plot(m.out, type = "jitter")
-  plot(m.out, type = "hist")
+  #plot(m.out, type = "jitter")
+  #plot(m.out, type = "hist")
   
   
   # Get two groups: matched and unmatched
