@@ -60,8 +60,7 @@ cronbach.alpha(d[, c(
 spearman_brown(d$self_disclosure_1, d$self_disclosure_2)
 
 d$self_disclosure <- rowMeans(d[, c(
-    "self_disclosure_1", 
-    "self_disclosure_2")])
+    "self_disclosure_1", "self_disclosure_2")])
 
 ###################### T-TESTS ######################
 

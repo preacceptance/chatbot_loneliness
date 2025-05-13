@@ -310,11 +310,26 @@ process(data = d, y = "loneliness_reduction", x = "condition_numeric",
         m = c("heard", "perf"), model = 4, effsize = 1, mcx = 1, total = 1, stand = 1,
         contrast =1, boot = 10000 , modelbt = 1, seed = 654321)
 
+# Feeling heard was a significantly stronger mediator than performance in both comparisons
+### For contrast, do not look at multiple conditions as mcx is not supported. Instead, look at the conditions separately
+# Contrasts for the parallel model (model 4)
+d_1_2 <- d[d$condition %in% c("AI Companion", "AI Assistant"),]
+process(data = d_1_2, y = "loneliness_reduction", x = "condition_numeric",
+        m = c("heard", "perf"), model = 4, effsize = 1, total = 1, stand = 1,
+        contrast = 1, boot = 10000 , modelbt = 1, seed = 654321)
+
+d_1_3 <- d[d$condition %in% c("AI Companion", "Control"),]
+process(data = d_1_3, y = "loneliness_reduction", x = "condition_numeric",
+        m = c("heard", "perf"), model = 4, effsize = 1, total = 1, stand = 1,
+        contrast = 1, boot = 10000 , modelbt = 1, seed = 654321)
+
+
 ### Test following serial model: IV -> feeling heard -> performance -> loneliness reduction
 process(data = d, y = "loneliness_reduction", x = "condition_numeric",
         m = c("heard", "perf"), model = 6, effsize = 1, mcx = 1, total = 1, stand = 1,
         contrast =1, boot = 10000 , modelbt = 1, seed = 654321)
 
+# Contrasts for the serial model (model 6)
 ### For contrast, do not look at multiple conditions as mcx is not supported. Instead, look at the conditions separately
 d_1_2 <- d[d$condition %in% c("AI Companion", "AI Assistant"),]
 process(data = d_1_2, y = "loneliness_reduction", x = "condition_numeric",

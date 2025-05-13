@@ -75,7 +75,7 @@ print(paste0("Age: ", mean(as.numeric(d$age), trim = 0, na.rm = TRUE))) ## mean 
 print(paste0("Percentage of females: ", dim(d[d$gender == 2,])[1] / dim(d)[1]))
 
 size_before <- dim(d)[1]
-d_not_believed <- d[d$condition == 'another person' & d$condition_2 == 'ai' & d$believe_q == "2", ]  # Exclude participants who did not believe
+d_not_believed <- d[d$condition == 'another person' & d$condition_2 == 'ai' & d$believe_q == "2", ]
 print(paste0("Percentage of participants that didn't believe they were talking to a human: ", (100 * dim(d_not_believed)[1] /
 (dim(d_not_believed)[1] + dim(d[d$condition == 'another person' & d$condition_2 == 'ai',])[1]))))
 
@@ -443,7 +443,7 @@ for (condition in conditions) {
         # Perform the t-test
         vart <- var.test(lonely_before, lonely_after)
         tt <- t.test(lonely_before, lonely_after, paired = TRUE, var.equal = vart$p.value > 0.05)
-
+        
         # Calculate and store the effect size
         effect_sizes[[condition]][[as.character(threshold)]] <- cohen.d(lonely_before, lonely_after, paired=TRUE)$estimate
     }

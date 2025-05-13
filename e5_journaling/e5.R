@@ -173,3 +173,4 @@ purpose <- purpose[purpose$purpose_correct == 1, ]
 
 # Uncomment to exclude those who have correctly identified the study purpose
 #d <- d[!(d$worker_id %in% purpose$worker_id), ]
+#dim(d)
