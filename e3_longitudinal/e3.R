@@ -16,8 +16,6 @@ pacman::p_load('ggplot2',
                'reshape2',
                'ltm', 'boot', 'simr', 'pwr')
 
-pwr.t.test(d = 0.11, power = 0.80, sig.level = 0.05)
-
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) #set working directory to current directory
 
 DAYS <- c(2, 3, 4, 5, 6, 7)
@@ -27,7 +25,13 @@ d <- read.csv("data/data_day1.csv")
 ############################ ATTENTION AND COMPREHENSION CHECKS ############################
 # Attention check
 size_before <- dim(d)[1]
+d$day <- 1
+
 d <- d[(d$att1 == "2" & d$att2 == "2"),]
+
+# Remove row with worker_id='0D7E358BFF384C8EB131A4BE14C08036' on day 1 with condition 'Control', since this worker_id is a duplicate
+d <- d[!(d$worker_id == '0D7E358BFF384C8EB131A4BE14C08036' & d$day == 1 & d$condition == "Control"),]
+
 print(paste0("Number of participants hired: ", dim(d)[1]))
 
 # Exclude participants based on comprehension check for all 3 conditions: 'Control', 'Prediction', 'Experience'
@@ -38,11 +42,7 @@ d$comp_experience <- d$comp_1_e == "1" & d$comp_2_e == "1"
 
 d$passed_comp_check <- d$comp_prediction | d$comp_control | d$comp_experience
 d <- d[d$passed_comp_check == 1,]
-d$day <- 1
 print(paste0("Exclusions from comprehension check: ", size_before - dim(d)[1]))
-
-# Remove row with worker_id='0D7E358BFF384C8EB131A4BE14C08036' on day 1 with condition 'Control', since this worker_id is a duplicate
-d <- d[!(d$worker_id == '0D7E358BFF384C8EB131A4BE14C08036' & d$day == 1 & d$condition == "Control"),]
 
 # Get number of participants in both experience and control conditions
 print(table(d$condition))
@@ -418,6 +418,10 @@ for (i in 1:7) {
     # Print the results in this format: MControl = 4.37 (2.13) vs. MAfter = 5.91 (3.11), t(3177.7) = -2.96, p = .003, d = -0.10
     print(paste0(i, "; MControl = ", round(mean(x), 2), " (", round(sd(x), 2), ") vs. MAfter = ", round(mean(y), 2), " (", round(sd(y), 2), "), t(", round(ttest_control_exp$parameter, 2), ") = ", round(ttest_control_exp$statistic, 2), ", p = ", round(ttest_control_exp$p.value, 3), ", d = ", round(cd$estimate, 2)))
 }
+
+# Post-hoc power test
+pwr.t.test(d = 0.11, power = 0.80, sig.level = 0.05)
+
 
 # T-TESTS COMPARING LONELINESS IN CONTROL VS. BEFORE INTERACTION
 for (i in 1:7) {
